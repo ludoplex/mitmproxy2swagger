@@ -27,7 +27,7 @@ def path_to_regex(path):
     path = path.replace(r"\{", "(?P<")
     path = path.replace(r"\}", ">[^/]+)")
     path = path.replace(r"\*", ".*")
-    return "^" + path + "$"
+    return f"^{path}$"
 
 
 def strip_query_string(path):
@@ -48,8 +48,8 @@ def detect_input_format(file_path):
     har_score = har_archive_heuristic(file_path)
     mitmproxy_score = mitmproxy_dump_file_huristic(file_path)
     if "MITMPROXY2SWAGGER_DEBUG" in os.environ:
-        print("har score: " + str(har_score))
-        print("mitmproxy score: " + str(mitmproxy_score))
+        print(f"har score: {str(har_score)}")
+        print(f"mitmproxy score: {str(mitmproxy_score)}")
     if har_score > mitmproxy_score:
         return HarCaptureReader(file_path, progress_callback)
     return MitmproxyCaptureReader(file_path, progress_callback)
@@ -105,7 +105,7 @@ def main(override_args: Optional[Sequence[str]] = None):
     args = parser.parse_args(override_args)
 
     try:
-        args.param_regex = re.compile("^" + args.param_regex + "$")
+        args.param_regex = re.compile(f"^{args.param_regex}$")
     except re.error as e:
         print(
             f"{console_util.ANSI_RED}Invalid path parameter regex: {e}{console_util.ANSI_RESET}"
@@ -115,7 +115,7 @@ def main(override_args: Optional[Sequence[str]] = None):
     yaml = ruamel.yaml.YAML()
 
     capture_reader: Union[MitmproxyCaptureReader, HarCaptureReader]
-    if args.format == "flow" or args.format == "mitmproxy":
+    if args.format in ["flow", "mitmproxy"]:
         capture_reader = MitmproxyCaptureReader(args.input, progress_callback)
     elif args.format == "har":
         capture_reader = HarCaptureReader(args.input, progress_callback)
@@ -138,7 +138,7 @@ def main(override_args: Optional[Sequence[str]] = None):
             {
                 "openapi": "3.0.0",
                 "info": {
-                    "title": args.input + " Mitmproxy2Swagger",
+                    "title": f"{args.input} Mitmproxy2Swagger",
                     "version": "1.0.0",
                 },
             }
@@ -150,7 +150,7 @@ def main(override_args: Optional[Sequence[str]] = None):
         swagger["servers"] = []
 
     # add the server if it doesn't exist
-    if not any(server["url"] == args.api_prefix for server in swagger["servers"]):
+    if all(server["url"] != args.api_prefix for server in swagger["servers"]):
         swagger["servers"].append(
             {"url": args.api_prefix, "description": "The default server"}
         )
@@ -368,7 +368,7 @@ def main(override_args: Optional[Sequence[str]] = None):
             param_id = 0
             for segment in segments:
                 if is_param(segment):
-                    param_name = "id" + str(param_id)
+                    param_name = f"id{str(param_id)}"
                     if param_id == 0:
                         param_name = "id"
                     new_segments.append("{" + param_name + "}")
@@ -378,10 +378,10 @@ def main(override_args: Optional[Sequence[str]] = None):
             suggested_path = "/".join(new_segments)
             # prepend the suggested path to the new_path_templates list
             if suggested_path not in new_path_templates_with_suggestions:
-                new_path_templates_with_suggestions.append("ignore:" + suggested_path)
+                new_path_templates_with_suggestions.append(f"ignore:{suggested_path}")
 
         if not has_param or not args.suppress_params:
-            new_path_templates_with_suggestions.append("ignore:" + path)
+            new_path_templates_with_suggestions.append(f"ignore:{path}")
 
     # remove the ending comments not to add them twice
 

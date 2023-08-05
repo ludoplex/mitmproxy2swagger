@@ -25,7 +25,7 @@ def har_archive_heuristic(file_path: str) -> int:
         ):
             val += 25
         # sign of a JSON file
-        if data[0:1] == b"{":
+        if data[:1] == b"{":
             val += 23
         # sign of Chrome OR Firefox export
         if b'"WebInspector"' in data or b'"Firefox"' in data:
